@@ -1,20 +1,74 @@
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
-class DatabaseManager {
-    private static final String URL = "jdbc:mysql://localhost:3306/plagiarism_db";
-    private static final String USER = "root"; // change if different
-    private static final String PASSWORD = "oracle"; // change if different
+public class DatabaseManager {
 
-    public static void insertResult(String file1, String file2, double percent, String verdict) {
-        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD)) {
-            String query = "INSERT INTO plagiarism_results (file1_name, file2_name, match_percent, verdict, timestamp) VALUES (?, ?, ?, ?, NOW())";
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, file1);
-            stmt.setString(2, file2);
-            stmt.setDouble(3, percent);
-            stmt.setString(4, verdict);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
+    private static final String URL =
+        "jdbc:mysql://localhost:3306/plagiarism_db?useSSL=false&serverTimezone=UTC";
+    private static final String USER = "root";
+    private static final String PASSWORD = "oracle"; // CHANGE THIS
+
+    // INSERT RESULT
+    public static void insertResult(String file1, String file2,
+                                    double percentage, String verdict) {
+        try {
+            // 🔴 THIS LINE IS CRITICAL
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            Connection con = DriverManager.getConnection(URL, USER, PASSWORD);
+
+            String sql =
+                "INSERT INTO plagiarism_results (file1_name, file2_name, plagiarism_percentage, verdict) " +
+                "VALUES (?, ?, ?, ?)";
+
+            PreparedStatement ps = con.prepareStatement(sql);
+            ps.setString(1, file1);
+            ps.setString(2, file2);
+            ps.setDouble(3, percentage);
+            ps.setString(4, verdict);
+
+            ps.executeUpdate();
+            con.close();
+
+            System.out.println("Result saved to database.");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // FETCH HISTORY
+    public static void showHistory() {
+        try {
+            // 🔴 THIS LINE IS CRITICAL
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            Connection con = DriverManager.getConnection(URL, USER, PASSWORD);
+
+            String sql =
+                "SELECT * FROM plagiarism_results ORDER BY compared_at DESC";
+
+            PreparedStatement ps = con.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            System.out.println("\n---- Previous Comparisons ----");
+
+            while (rs.next()) {
+                System.out.println(
+                    "ID: " + rs.getInt("id") +
+                    " | File1: " + rs.getString("file1_name") +
+                    " | File2: " + rs.getString("file2_name") +
+                    " | Similarity: " + rs.getDouble("plagiarism_percentage") + "%" +
+                    " | Verdict: " + rs.getString("verdict") +
+                    " | Time: " + rs.getTimestamp("compared_at")
+                );
+            }
+
+            con.close();
+
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

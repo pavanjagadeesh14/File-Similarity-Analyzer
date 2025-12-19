@@ -20,5 +20,7 @@ public class Main {
 
         DatabaseManager.insertResult(new File(file1Path).getName(), new File(file2Path).getName(), plagiarismPercent,
                 verdict);
+        DatabaseManager.showHistory();
+
     }
 }
